@@ -6,6 +6,7 @@ import (
 	"os"
 
 	"github.com/spf13/cobra"
+	"github.com/yourusername/ais/internal/proxy"
 )
 
 var (
@@ -33,6 +34,16 @@ var serveCmd = &cobra.Command{
 		// Start HTTP server
 		fmt.Printf("AI Switch started on port %d\n", port)
 		
+		// Create proxy config
+		proxyConfig := proxy.Config{
+			Provider: provider,
+			Key:      key,
+			Model:    model,
+			BaseURL:  baseURL,
+		}
+		
+		// Register routes
+		http.HandleFunc("/v1/chat/completions", proxy.Handler(proxyConfig))
 		http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 			http.NotFound(w, r)
 		})
