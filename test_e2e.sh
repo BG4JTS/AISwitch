@@ -128,6 +128,8 @@ assert_contains "choices 包含 message" "$BODY" '"message"'
 assert_contains "message 包含 assistant role" "$BODY" '"role":"assistant"'
 assert_contains "message 包含 content" "$BODY" '"content"'
 assert_contains "created 是非零值" "$BODY" '"created":[1-9]'
+assert_contains "cost_usd > 0" "$BODY" '"cost_usd":0'
+assert_not_contains "cost_usd 不是 0" "$BODY" '"cost_usd":0,'
 
 # ============================================================
 # 6. 测试流式请求 (DeepSeek)

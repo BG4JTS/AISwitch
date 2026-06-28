@@ -20,6 +20,7 @@ type Config struct {
 	Key      string
 	Model    string
 	BaseURL  string
+	Verbose  bool
 }
 
 // defaultTargetURL returns the upstream URL for a given provider.
@@ -41,6 +42,12 @@ func defaultTargetURL(provider string) (string, bool) {
 func Handler(config Config) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		startTime := time.Now()
+		
+		// Verbose: log incoming request summary
+		if config.Verbose {
+			fmt.Printf("[VERBOSE] %s %s %s → %s (model=%s)\n",
+				r.Method, r.URL.Path, r.RemoteAddr, config.Provider, config.Model)
+		}
 
 		// Only allow POST method
 		if r.Method != http.MethodPost {
@@ -98,6 +105,15 @@ func Handler(config Config) http.HandlerFunc {
 		if err != nil {
 			http.Error(w, fmt.Sprintf("Failed to build request body: %v", err), http.StatusBadRequest)
 			return
+		}
+
+		// Verbose: log the request body being sent to upstream
+		if config.Verbose {
+			if config.Provider == "anthropic" {
+				fmt.Printf("[VERBOSE] → upstream (converted to Claude format): %s\n", limitString(string(jsonBody), 500))
+			} else {
+				fmt.Printf("[VERBOSE] → upstream (original): %s\n", limitString(string(jsonBody), 500))
+			}
 		}
 
 		// Create upstream request
@@ -206,6 +222,12 @@ func Handler(config Config) http.HandlerFunc {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(resp.StatusCode)
 		w.Write(responseBody)
+
+		// Verbose: log the final response summary
+		if config.Verbose {
+			fmt.Printf("[VERBOSE] ← upstream status=%d bytes=%d tokens(p=%d,c=%d)\n",
+				resp.StatusCode, len(responseBody), promptTokens, completionTokens)
+		}
 	}
 }
 
@@ -274,6 +296,7 @@ func handleStreamingResponse(w http.ResponseWriter, resp *http.Response, config 
 	scanner.Buffer(make([]byte, 0, 64*1024), maxLineSize)
 
 	var cachedUsage map[string]interface{}
+	seenDone := false
 
 	for scanner.Scan() {
 		line := scanner.Text()
@@ -296,6 +319,7 @@ func handleStreamingResponse(w http.ResponseWriter, resp *http.Response, config 
 
 		// [DONE] terminates the stream.
 		if dataLine == "[DONE]" {
+			seenDone = true
 			fmt.Fprintf(w, "%s\n", line)
 			flusher.Flush()
 			continue
@@ -340,8 +364,10 @@ func handleStreamingResponse(w http.ResponseWriter, resp *http.Response, config 
 
 	// Some OpenAI-compatible servers don't emit [DONE] themselves; emit it
 	// so clients relying on it (e.g. openai-python) close cleanly.
-	fmt.Fprintf(w, "data: [DONE]\n")
-	flusher.Flush()
+	if !seenDone {
+		fmt.Fprintf(w, "data: [DONE]\n")
+		flusher.Flush()
+	}
 
 	// Log the streaming request using the cached usage.
 	promptTokens, completionTokens, totalTokens := readTokenCounts(cachedUsage)
@@ -456,4 +482,12 @@ func convertUsageFormat(anthropicUsage map[string]interface{}) map[string]interf
 	openaiUsage["total_tokens"] = pt + ct
 
 	return openaiUsage
+}
+
+// limitString truncates s to maxLen characters, appending "..." if truncated.
+func limitString(s string, maxLen int) string {
+	if len(s) > maxLen {
+		return s[:maxLen] + "..."
+	}
+	return s
 }
