@@ -16,7 +16,7 @@ type LogEntry struct {
 	CompletionTokens int     `json:"completion_tokens"`
 	TotalTokens      int     `json:"total_tokens"`
 	CostUSD          float64 `json:"cost_usd"`
-	DurationMs       int64   `json:"duration_ms"`
+	DurationMS       int64   `json:"duration_ms"`
 	Stream           bool    `json:"stream"`
 	Status           int     `json:"status"`
 	RequestID        string  `json:"request_id"`
