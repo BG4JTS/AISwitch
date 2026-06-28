@@ -6,28 +6,70 @@ import (
 	"os"
 
 	"github.com/spf13/cobra"
+	"github.com/yourusername/ais/internal/config"
 	"github.com/yourusername/ais/internal/proxy"
 )
 
 var (
-	provider string
-	key      string
-	model    string
-	port     int
-	baseURL  string
-	verbose  bool
+	provider    string
+	key         string
+	model       string
+	port        int
+	baseURL     string
+	verbose     bool
+	profileName string
 )
 
 var serveCmd = &cobra.Command{
 	Use:   "serve",
 	Short: "Start the AI Switch server",
+	Long: `Start the AI Switch proxy server.
+
+If --key or --model are omitted, the default profile from
+~/.ais/config.json is used. Set a default with:
+  ais config use <name>`,
+
 	Run: func(cmd *cobra.Command, args []string) {
+		// ── Try loading defaults from config file ──
+		cfg, cfgErr := config.Load()
+		if cfgErr != nil && key == "" {
+			fmt.Fprintf(os.Stderr, "Warning: could not load config: %v\n", cfgErr)
+		}
+
+		// Determine which profile to use
+		prof := profileName
+		if prof == "" && cfg != nil {
+			prof = cfg.DefaultProfile
+		}
+
+		// Apply config defaults for missing flags
+		if cfg != nil && prof != "" {
+			p := cfg.GetProfile(prof)
+			if p == nil {
+				fmt.Fprintf(os.Stderr, "Error: profile %q not found in config\n", prof)
+				os.Exit(1)
+			}
+			if provider == "openai" && p.Provider != "" {
+				provider = p.Provider
+			}
+			if key == "" {
+				key = p.Key
+			}
+			if model == "" {
+				model = p.Model
+			}
+			if baseURL == "" {
+				baseURL = p.BaseURL
+			}
+		}
+
+		// Final validation
 		if key == "" {
-			fmt.Fprintln(os.Stderr, "Error: --key is required")
+			fmt.Fprintln(os.Stderr, "Error: --key is required (or set a default profile with `ais config`)")
 			os.Exit(1)
 		}
 		if model == "" {
-			fmt.Fprintln(os.Stderr, "Error: --model is required")
+			fmt.Fprintln(os.Stderr, "Error: --model is required (or set a default profile with `ais config`)")
 			os.Exit(1)
 		}
 
@@ -58,12 +100,10 @@ var serveCmd = &cobra.Command{
 
 func init() {
 	serveCmd.Flags().StringVar(&provider, "provider", "openai", "AI provider (openai, anthropic, deepseek)")
-	serveCmd.Flags().StringVar(&key, "key", "", "API key (required)")
-	serveCmd.Flags().StringVar(&model, "model", "", "Model name (required)")
+	serveCmd.Flags().StringVar(&key, "key", "", "API key (can be loaded from config)")
+	serveCmd.Flags().StringVar(&model, "model", "", "Model name (can be loaded from config)")
 	serveCmd.Flags().IntVar(&port, "port", 8080, "Port to listen on")
 	serveCmd.Flags().StringVar(&baseURL, "base-url", "", "Custom base URL")
 	serveCmd.Flags().BoolVar(&verbose, "verbose", false, "Enable verbose debug output")
-
-	serveCmd.MarkFlagRequired("key")
-	serveCmd.MarkFlagRequired("model")
+	serveCmd.Flags().StringVar(&profileName, "profile", "", "Profile name from config (default: use default profile)")
 }
