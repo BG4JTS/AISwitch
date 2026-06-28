@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"math"
+	"sort"
 	"strings"
 	"time"
 )
@@ -56,22 +57,34 @@ var priceTable = map[string][2]float64{
 var defaultPrice = [2]float64{0.001, 0.002}
 
 // CalculateCost computes the USD cost for a request based on token usage.
+// Result is rounded to 8 decimal places.
 func CalculateCost(model string, promptTokens, completionTokens int) float64 {
 	// Try exact match first
 	if prices, ok := priceTable[model]; ok {
-		return float64(promptTokens)/1000*prices[0] + float64(completionTokens)/1000*prices[1]
+		cost := float64(promptTokens)/1000*prices[0] + float64(completionTokens)/1000*prices[1]
+		return math.Round(cost*1e8) / 1e8
 	}
 
-	// Try prefix match (e.g. "gpt-4o-2024-08-06" -> "gpt-4o")
+	// Sort keys by length descending so longer (more specific) prefixes match first
+	keys := make([]string, 0, len(priceTable))
+	for k := range priceTable {
+		keys = append(keys, k)
+	}
+	sort.Slice(keys, func(i, j int) bool { return len(keys[i]) > len(keys[j]) })
+
+	// Try prefix match
 	lowerModel := strings.ToLower(model)
-	for key, prices := range priceTable {
+	for _, key := range keys {
 		if strings.HasPrefix(lowerModel, key) {
-			return float64(promptTokens)/1000*prices[0] + float64(completionTokens)/1000*prices[1]
+			prices := priceTable[key]
+			cost := float64(promptTokens)/1000*prices[0] + float64(completionTokens)/1000*prices[1]
+			return math.Round(cost*1e8) / 1e8
 		}
 	}
 
 	// Fallback to default price
-	return float64(promptTokens)/1000*defaultPrice[0] + float64(completionTokens)/1000*defaultPrice[1]
+	cost := float64(promptTokens)/1000*defaultPrice[0] + float64(completionTokens)/1000*defaultPrice[1]
+	return math.Round(cost*1e8) / 1e8
 }
 
 // PrintLog prints a log entry in JSON format to stdout
@@ -82,7 +95,7 @@ func PrintLog(entry LogEntry) {
 
 	// Calculate cost if it hasn't been set yet
 	if entry.CostUSD == 0 && (entry.PromptTokens > 0 || entry.CompletionTokens > 0) {
-		entry.CostUSD = math.Round(CalculateCost(entry.Model, entry.PromptTokens, entry.CompletionTokens)*1e8) / 1e8
+		entry.CostUSD = CalculateCost(entry.Model, entry.PromptTokens, entry.CompletionTokens)
 	}
 
 	data, err := json.Marshal(entry)

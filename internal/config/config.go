@@ -22,8 +22,16 @@ type File struct {
 	Profiles       []Profile `json:"profiles"`
 }
 
-// configPath returns the path to ~/.ais/config.json
+// configPath returns the path to ~/.ais/config.json.
+// If AIS_CONFIG_PATH is set, it uses that path directly (for testing).
 func configPath() (string, error) {
+	if p := os.Getenv("AIS_CONFIG_PATH"); p != "" {
+		dir := filepath.Dir(p)
+		if err := os.MkdirAll(dir, 0700); err != nil {
+			return "", fmt.Errorf("cannot create config directory: %w", err)
+		}
+		return p, nil
+	}
 	home, err := os.UserHomeDir()
 	if err != nil {
 		return "", fmt.Errorf("cannot determine home directory: %w", err)
