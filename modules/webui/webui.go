@@ -22,25 +22,34 @@ import (
 //go:embed dist/*
 var staticFiles embed.FS
 
-type WebUI struct{}
+type WebUI struct {
+	mux *http.ServeMux
+}
 
 func init() {
 	core.RegisterModule(&WebUI{})
 }
 
-func (m *WebUI) Name() string     { return "webui" }
+func (m *WebUI) Name() string       { return "webui" }
 func (m *WebUI) Requires() []string { return nil }
-func (m *WebUI) Enabled() bool    { return true }
+func (m *WebUI) Enabled() bool      { return true }
 
-func (m *WebUI) Init(ctx *module.CoreContext) error { return nil }
-func (m *WebUI) Stop() error                        { return nil }
+func (m *WebUI) Init(ctx *module.CoreContext) error {
+	m.mux = ctx.Mux
+	return nil
+}
 
 func (m *WebUI) Start(ctx context.Context) error {
 	sub, err := fs.Sub(staticFiles, "dist")
 	if err != nil {
-		// If dist/ is empty or missing, serve nothing.
 		return nil
 	}
-	http.Handle("/dashboard/", http.StripPrefix("/dashboard/", http.FileServer(http.FS(sub))))
+	if m.mux != nil {
+		m.mux.Handle("/dashboard/", http.StripPrefix("/dashboard/", http.FileServer(http.FS(sub))))
+	} else {
+		http.Handle("/dashboard/", http.StripPrefix("/dashboard/", http.FileServer(http.FS(sub))))
+	}
 	return nil
 }
+
+func (m *WebUI) Stop() error { return nil }

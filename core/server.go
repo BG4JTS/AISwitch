@@ -49,6 +49,7 @@ type Server struct {
 	httpSrv *http.Server
 	modules map[string]module.Module
 	proxy   proxy.Config
+	mux     *http.ServeMux // built in buildRoutes, injected to modules in startModules
 
 	// Injected dependencies
 	Logger  *logger.Logger
@@ -147,20 +148,23 @@ func (s *Server) validate() error {
 }
 
 func (s *Server) buildRoutes() *http.ServeMux {
-	mux := http.NewServeMux()
-	mux.HandleFunc("/v1/chat/completions", proxy.Handler(s.proxy))
-	mux.HandleFunc("/health", s.handleHealth)
-	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+	s.mux = http.NewServeMux()
+	s.mux.HandleFunc("/v1/chat/completions", proxy.Handler(s.proxy))
+	s.mux.HandleFunc("/health", s.handleHealth)
+	s.mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		http.NotFound(w, r)
 	})
-	return mux
+	return s.mux
 }
 
 func (s *Server) startModules(ctx context.Context) error {
+	// Inject mux into modules that need it (via Init re-call)
 	for name, m := range s.modules {
 		if !m.Enabled() {
 			continue
 		}
+		// Re-init with mux injected so modules can register routes
+		_ = m.Init(&module.CoreContext{Config: s.cfg, Mux: s.mux})
 		if err := m.Start(ctx); err != nil {
 			return fmt.Errorf("starting module %s: %w", name, err)
 		}

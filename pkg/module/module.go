@@ -11,16 +11,18 @@ package module
 
 import (
 	"context"
+	"net/http"
 
 	"github.com/BG4JTS/AISwitch/pkg/types"
 )
 
 // CoreContext 是模块初始化时注入的共享依赖容器。
 //
-// 目前仅包含应用配置的引用。未来可以扩展为
-// 注入 Logger、KeyManager、PriceTable 等全局单例。
+// 目前仅包含应用配置的引用和可选的 HTTP 多路复用器。
+// 如果模块需要注册 HTTP 路由，应使用 Mux 字段（可能为 nil）。
 type CoreContext struct {
 	Config *types.Config
+	Mux    *http.ServeMux // 服务器的主路由表（由 core.Server 注入）
 }
 
 // Module 是所有可插拔模块必须实现的接口。
