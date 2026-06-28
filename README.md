@@ -194,6 +194,33 @@ ais/
         └── config.go   # Persistent config (~/.ais/config.json)
 ```
 
+## Build Variants
+
+| Variant | Build Tag | Modules | Use Case |
+|---------|-----------|---------|----------|
+| `ais` | *(none)* | Core proxy | Minimal deployment |
+| `ais-webui` | `webui` | Core + WebUI | Visual dashboard |
+| `ais-cost` | `cost` | Core + Cost | Budget management |
+| `ais-keymgr` | `keymgr` | Core + KeyMgr | Encrypted key storage |
+| `ais-full` | `cost,keymgr,webui` | All modules | Full experience |
+
+```bash
+make build-all           # all variants
+make build               # default binary
+make build-full          # all modules
+```
+
+## Configuration
+
+Copy the example and edit:
+
+```bash
+cp config.example.yaml ~/.ais/config.yaml
+vim ~/.ais/config.yaml
+```
+
+Supports: YAML config → environment variables (`AIS_PRICE_GPT4=0.03,0.06`) → `--price` CLI flag.
+
 ## Testing
 
 ```bash

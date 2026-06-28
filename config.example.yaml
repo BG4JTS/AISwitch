@@ -1,0 +1,62 @@
+# ── AI Switch 示例配置文件 ──────────────────────────────────
+# 将此文件复制到 ~/.ais/config.yaml 并根据需要修改。
+# 命令行参数优先级高于本文件。
+
+# ── 服务器配置 ──────────────────────────────────────────────
+
+server:
+  port: 8080
+  host: localhost
+
+# ── 价格配置（完全可自定义）──────────────────────────────────
+# 格式：模型名 = "输入价格,输出价格"（每千 token 的美元价格）
+# 未列出的模型使用默认价格 $0.001 / $0.002
+
+prices:
+  gpt-4: "0.03,0.06"
+  gpt-4o: "0.0025,0.01"
+  gpt-4o-mini: "0.00015,0.0006"
+  gpt-3.5-turbo: "0.0005,0.0015"
+  claude-3-opus: "0.015,0.075"
+  claude-3-5-sonnet: "0.003,0.015"
+  claude-3-5-haiku: "0.001,0.005"
+  deepseek-chat: "0.00014,0.00028"
+  deepseek-reasoner: "0.00055,0.00219"
+  gemini-1.5-flash: "0.000075,0.0003"
+  # 自定义模型:
+  # my-custom-model: "0.001,0.002"
+
+# ── 模块配置（可选）──────────────────────────────────────────
+# 各模块需要对应的 build tag 才会编译生效
+
+modules:
+  # 费用控制模块 (build tag: cost)
+  cost:
+    enabled: true
+    budget_daily: 5.0       # 每日预算（美元）
+    budget_monthly: 50.0    # 每月预算（美元）
+    alert_threshold: 0.8    # 80% 时输出警告日志
+    block_on_exceed: true   # 超预算时拒绝请求（HTTP 429）
+
+  # Web 仪表板 (build tag: webui)
+  webui:
+    enabled: true
+    port: 8081
+
+  # Key 管理模块 (build tag: keymgr)
+  keymgr:
+    enabled: true
+    storage: "~/.ais/keys.enc"
+
+# ── 使用说明 ─────────────────────────────────────────────────
+#
+# 1. 复制此文件:
+#    cp config.example.yaml ~/.ais/config.yaml
+#
+# 2. 修改 price 和 modules 部分
+#
+# 3. 环境变量覆盖价格（优先级更高）:
+#    AIS_PRICE_GPT4=0.02,0.04 ./ais serve ...
+#
+# 4. 命令行参数覆盖一切:
+#    ./ais serve --price gpt-4=0.01,0.02 ...

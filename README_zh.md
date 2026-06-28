@@ -192,6 +192,33 @@ ais/
         └── config.go     # 持久化配置 (~/.ais/config.json)
 ```
 
+## 构建版本
+
+| 二进制 | Build Tag | 模块 | 适用场景 |
+|--------|-----------|------|----------|
+| `ais` | *(无)* | 核心代理 | 最小部署 |
+| `ais-webui` | `webui` | 核心 + WebUI | 可视化仪表板 |
+| `ais-cost` | `cost` | 核心 + 费用控制 | 预算管理 |
+| `ais-keymgr` | `keymgr` | 核心 + Key 管理 | 加密存储 Key |
+| `ais-full` | `cost,keymgr,webui` | 全功能 | 完整体验 |
+
+```bash
+make build-all           # 所有版本
+make build               # 默认二进制
+make build-full          # 全模块
+```
+
+## 配置文件
+
+复制示例并修改：
+
+```bash
+cp config.example.yaml ~/.ais/config.yaml
+vim ~/.ais/config.yaml
+```
+
+支持：YAML 配置 → 环境变量（`AIS_PRICE_GPT4=0.03,0.06`）→ `--price` 命令行参数。
+
 ## 测试
 
 ```bash
