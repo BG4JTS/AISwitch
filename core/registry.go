@@ -10,7 +10,7 @@
 //
 // 模块通过 init() 函数自动注册，无需手动导入：
 //
-//	import _ "github.com/yourusername/ais/modules/webui" // 自动注册
+//	import _ "github.com/BG4JTS/AISwitch/modules/webui" // 自动注册
 //
 // 典型的服务启动流程：
 //
@@ -22,7 +22,7 @@
 //	srv.Run()
 package core
 
-import "github.com/yourusername/ais/pkg/module"
+import "github.com/BG4JTS/AISwitch/pkg/module"
 
 // registeredModules 存储所有通过 RegisterModule() 注册的模块。
 // 键为模块名称（module.Name()），值为模块实例。

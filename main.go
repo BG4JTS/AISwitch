@@ -12,7 +12,7 @@
 //	ais config use mykey && ais serve
 package main
 
-import "github.com/yourusername/ais/cmd"
+import "github.com/BG4JTS/AISwitch/cmd"
 
 func main() {
 	cmd.Execute()

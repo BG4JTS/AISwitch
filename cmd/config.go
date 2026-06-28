@@ -5,7 +5,7 @@ import (
 	"fmt"
 
 	"github.com/spf13/cobra"
-	"github.com/yourusername/ais/internal/config"
+	"github.com/BG4JTS/AISwitch/internal/config"
 )
 
 var configCmd = &cobra.Command{

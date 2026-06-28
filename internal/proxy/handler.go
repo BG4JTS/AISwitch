@@ -21,9 +21,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/yourusername/ais/internal/convert"
-	"github.com/yourusername/ais/internal/keymanager"
-	"github.com/yourusername/ais/internal/logger"
+	"github.com/BG4JTS/AISwitch/internal/convert"
+	"github.com/BG4JTS/AISwitch/internal/keymanager"
+	"github.com/BG4JTS/AISwitch/internal/logger"
 )
 
 // ── Config ──────────────────────────────────────────────────────────────

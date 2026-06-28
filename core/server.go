@@ -20,13 +20,13 @@ import (
 	"os/signal"
 	"sync"
 
-	"github.com/yourusername/ais/internal/config"
-	"github.com/yourusername/ais/internal/keymanager"
-	"github.com/yourusername/ais/internal/logger"
-	"github.com/yourusername/ais/internal/proxy"
-	"github.com/yourusername/ais/pkg/module"
-	"github.com/yourusername/ais/pkg/price"
-	"github.com/yourusername/ais/pkg/types"
+	"github.com/BG4JTS/AISwitch/internal/config"
+	"github.com/BG4JTS/AISwitch/internal/keymanager"
+	"github.com/BG4JTS/AISwitch/internal/logger"
+	"github.com/BG4JTS/AISwitch/internal/proxy"
+	"github.com/BG4JTS/AISwitch/pkg/module"
+	"github.com/BG4JTS/AISwitch/pkg/price"
+	"github.com/BG4JTS/AISwitch/pkg/types"
 )
 
 // Server 是 AI Switch 的模块化 HTTP 服务器。

@@ -18,8 +18,8 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/yourusername/ais/core"
-	"github.com/yourusername/ais/pkg/module"
+	"github.com/BG4JTS/AISwitch/core"
+	"github.com/BG4JTS/AISwitch/pkg/module"
 )
 
 // encryptedKey stores a masked or encrypted key entry.

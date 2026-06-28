@@ -13,8 +13,8 @@ import (
 	"os"
 	"time"
 
-	"github.com/yourusername/ais/pkg/price"
-	"github.com/yourusername/ais/pkg/types"
+	"github.com/BG4JTS/AISwitch/pkg/price"
+	"github.com/BG4JTS/AISwitch/pkg/types"
 )
 
 // LogEntry is an alias for the shared type defined in pkg/types.

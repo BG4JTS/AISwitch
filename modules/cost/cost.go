@@ -23,10 +23,10 @@ import (
 	"sync"
 	"time"
 
-	"github.com/yourusername/ais/core"
-	"github.com/yourusername/ais/pkg/module"
-	"github.com/yourusername/ais/pkg/price"
-	"github.com/yourusername/ais/pkg/types"
+	"github.com/BG4JTS/AISwitch/core"
+	"github.com/BG4JTS/AISwitch/pkg/module"
+	"github.com/BG4JTS/AISwitch/pkg/price"
+	"github.com/BG4JTS/AISwitch/pkg/types"
 )
 
 // Budget tracks daily/monthly spending.

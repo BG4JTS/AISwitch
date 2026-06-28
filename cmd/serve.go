@@ -5,9 +5,9 @@ import (
 	"os"
 
 	"github.com/spf13/cobra"
-	"github.com/yourusername/ais/core"
-	"github.com/yourusername/ais/internal/config"
-	"github.com/yourusername/ais/internal/proxy"
+	"github.com/BG4JTS/AISwitch/core"
+	"github.com/BG4JTS/AISwitch/internal/config"
+	"github.com/BG4JTS/AISwitch/internal/proxy"
 )
 
 var (

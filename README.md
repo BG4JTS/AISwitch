@@ -31,7 +31,7 @@ consistent OpenAI-style API — the proxy handles the rest.
 ### Install
 
 ```bash
-go install github.com/yourusername/ais@latest
+go install github.com/BG4JTS/AISwitch@latest
 ```
 
 Or build from source:

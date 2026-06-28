@@ -12,7 +12,7 @@ package module
 import (
 	"context"
 
-	"github.com/yourusername/ais/pkg/types"
+	"github.com/BG4JTS/AISwitch/pkg/types"
 )
 
 // CoreContext 是模块初始化时注入的共享依赖容器。

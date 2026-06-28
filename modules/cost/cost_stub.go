@@ -6,9 +6,9 @@ package cost
 import (
 	"context"
 
-	"github.com/yourusername/ais/core"
-	"github.com/yourusername/ais/pkg/module"
-	"github.com/yourusername/ais/pkg/price"
+	"github.com/BG4JTS/AISwitch/core"
+	"github.com/BG4JTS/AISwitch/pkg/module"
+	"github.com/BG4JTS/AISwitch/pkg/price"
 )
 
 // Budget is a stub for the no-cost build.
