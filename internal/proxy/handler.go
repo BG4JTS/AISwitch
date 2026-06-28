@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/yourusername/ais/internal/convert"
 	"github.com/yourusername/ais/internal/logger"
 )
 
@@ -51,22 +52,35 @@ func Handler(config Config) http.HandlerFunc {
 			model = modelVal
 		}
 
-		// Construct target URL
+		// Construct target URL based on provider
 		targetURL := config.BaseURL
 		if targetURL == "" {
 			if config.Provider == "openai" {
 				targetURL = "https://api.openai.com/v1/chat/completions"
+			} else if config.Provider == "anthropic" {
+				targetURL = "https://api.anthropic.com/v1/messages"
 			} else {
 				http.Error(w, "Unsupported provider", http.StatusBadRequest)
 				return
 			}
 		}
 
-		// Re-create request body for forwarding
-		jsonBody, err := json.Marshal(requestBody)
-		if err != nil {
-			http.Error(w, fmt.Sprintf("Failed to marshal request body: %v", err), http.StatusInternalServerError)
-			return
+		// Convert request body based on provider
+		var jsonBody []byte
+		var err error
+		
+		if config.Provider == "anthropic" {
+			jsonBody, err = convert.ConvertOpenAIReqToClaude(requestBody)
+			if err != nil {
+				http.Error(w, fmt.Sprintf("Failed to convert request for Anthropic: %v", err), http.StatusBadRequest)
+				return
+			}
+		} else {
+			jsonBody, err = json.Marshal(requestBody)
+			if err != nil {
+				http.Error(w, fmt.Sprintf("Failed to marshal request body: %v", err), http.StatusInternalServerError)
+				return
+			}
 		}
 
 		// Create new request
@@ -85,8 +99,13 @@ func Handler(config Config) http.HandlerFunc {
 			}
 		}
 
-		// Set authorization header
-		req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", config.Key))
+		// Set provider-specific headers
+		if config.Provider == "anthropic" {
+			req.Header.Set("x-api-key", config.Key)
+			req.Header.Set("anthropic-version", "2023-06-01")
+		} else {
+			req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", config.Key))
+		}
 
 		// Make the request
 		client := &http.Client{Timeout: 30 * time.Second}
@@ -104,16 +123,28 @@ func Handler(config Config) http.HandlerFunc {
 			return
 		}
 
+		// Convert response based on provider
+		var responseBody []byte
+		if config.Provider == "anthropic" {
+			responseBody, err = convert.ConvertClaudeRespToOpenAI(body)
+			if err != nil {
+				http.Error(w, fmt.Sprintf("Failed to convert Anthropic response: %v", err), http.StatusInternalServerError)
+				return
+			}
+		} else {
+			responseBody = body
+		}
+
 		// Parse response to extract usage
-		var responseBody map[string]interface{}
+		var responseBodyMap map[string]interface{}
 		usage := map[string]interface{}{
 			"prompt_tokens":     0,
 			"completion_tokens": 0,
 			"total_tokens":      0,
 		}
 
-		if err := json.Unmarshal(body, &responseBody); err == nil {
-			if usageData, ok := responseBody["usage"].(map[string]interface{}); ok {
+		if err := json.Unmarshal(responseBody, &responseBodyMap); err == nil {
+			if usageData, ok := responseBodyMap["usage"].(map[string]interface{}); ok {
 				usage = usageData
 			}
 		}
@@ -169,7 +200,7 @@ func Handler(config Config) http.HandlerFunc {
 		// Set status code
 		w.WriteHeader(resp.StatusCode)
 
-		// Write response body
-		w.Write(body)
+		// Write response body (converted if Anthropic, original if OpenAI)
+		w.Write(responseBody)
 	}
 }
