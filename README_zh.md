@@ -1,4 +1,4 @@
-# AI Switch
+<h1 align="center">AI Switch</h1>
 
 <p align="center">
   <b>一个 API，打通所有大模型。</b><br>

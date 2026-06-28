@@ -1,4 +1,4 @@
-# AI Switch
+<h1 align="center">AI Switch</h1>
 
 <p align="center">
   <b>One API to rule them all.</b><br>
