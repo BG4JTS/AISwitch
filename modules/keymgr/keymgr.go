@@ -116,7 +116,9 @@ func (mgr *Manager) load() {
 		return
 	}
 	var entries []encryptedKey
-	json.Unmarshal(data, &entries)
+	if err := json.Unmarshal(data, &entries); err != nil {
+		return
+	}
 	for _, e := range entries {
 		// Simple storage: key is in Encrypted field as plaintext.
 		// Production would decrypt here.

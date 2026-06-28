@@ -102,34 +102,36 @@ func (s *Server) ApplyConfigProfile(cfg *config.File, name string) error {
 }
 
 // Start begins listening and blocks until the context is cancelled.
-func (s *Server) Start(ctx context.Context) error {
-	// Resolve key via KeyMgr if not set directly
+func (s *Server) resolveKey() {
 	s.proxy.KeyMgr = s.KeyMgr
 	if s.proxy.Key == "" {
-		key, err := s.KeyMgr.GetKey(s.proxy.Provider)
-		if err == nil {
+		if key, err := s.KeyMgr.GetKey(s.proxy.Provider); err == nil {
 			s.proxy.Key = key
 		}
 	}
+}
 
-	// Validation
+func (s *Server) validate() error {
 	if s.proxy.Key == "" {
-		return fmt.Errorf("no API key provided (use --key, AIS_%s_KEY, or `ais config`)",
-			s.proxy.Provider)
+		return fmt.Errorf("no API key provided (use --key, AIS_%s_KEY, or `ais config`)", s.proxy.Provider)
 	}
 	if s.proxy.Model == "" {
 		return fmt.Errorf("model is required")
 	}
+	return nil
+}
 
-	// Build routes
+func (s *Server) buildRoutes() *http.ServeMux {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/v1/chat/completions", proxy.Handler(s.proxy))
 	mux.HandleFunc("/health", s.handleHealth)
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		http.NotFound(w, r)
 	})
+	return mux
+}
 
-	// Start modules
+func (s *Server) startModules(ctx context.Context) error {
 	for name, m := range s.modules {
 		if !m.Enabled() {
 			continue
@@ -138,7 +140,10 @@ func (s *Server) Start(ctx context.Context) error {
 			return fmt.Errorf("starting module %s: %w", name, err)
 		}
 	}
+	return nil
+}
 
+func (s *Server) listenAddr() string {
 	port := s.cfg.Server.Port
 	if port == 0 {
 		port = 8080
@@ -147,18 +152,27 @@ func (s *Server) Start(ctx context.Context) error {
 	if host == "" {
 		host = "localhost"
 	}
+	return fmt.Sprintf("%s:%d", host, port)
+}
 
-	s.httpSrv = &http.Server{
-		Addr:    fmt.Sprintf("%s:%d", host, port),
-		Handler: mux,
+// Start begins listening and blocks until the context is cancelled.
+func (s *Server) Start(ctx context.Context) error {
+	s.resolveKey()
+	if err := s.validate(); err != nil {
+		return err
 	}
 
-	fmt.Fprintf(os.Stderr, "AI Switch started on %s:%d\n", host, port)
+	mux := s.buildRoutes()
+	if err := s.startModules(ctx); err != nil {
+		return err
+	}
+
+	s.httpSrv = &http.Server{Addr: s.listenAddr(), Handler: mux}
+	fmt.Fprintf(os.Stderr, "AI Switch started on %s\n", s.listenAddr())
 	if s.proxy.Verbose {
 		fmt.Fprintln(os.Stderr, "[VERBOSE] Debug mode enabled")
 	}
 
-	// Graceful shutdown on context cancel
 	go func() {
 		<-ctx.Done()
 		s.httpSrv.Shutdown(context.Background())
