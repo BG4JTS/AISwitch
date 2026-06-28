@@ -5,10 +5,14 @@
   <i>通用 AI 对话代理 — OpenAI 格式进，任意厂商出。</i>
 </p>
 
+<p align="center">
+  <sub><a href="./README.md">English</a></sub>
+</p>
+
 ---
 
 AI Switch 是一个轻量的 Go 语言代理服务器，接收 **OpenAI 兼容格式** 的聊天请求，并**实时翻译**到 **DeepSeek、Anthropic (Claude) 等任意厂商**。
-客户端始终看到统一、标准的 OpenAI 风格 API，其余全部由代理处理。
+您始终看到统一、标准的 OpenAI 风格 API，其余全部由代理处理。
 
 ## 功能亮点
 
@@ -149,12 +153,12 @@ gemini-1.5-flash ·   $0.000075 / $0.0003
 }
 ```
 
-可配合 `jq` 分析、聚合，或直接接入日志系统。
+可配合 `jq` 分析、聚合，或直接接入您的日志系统。
 
 ## 架构
 
 ```
-客户端 (OpenAI SDK)          AI Switch               上游厂商
+您 (OpenAI SDK)              AI Switch               上游厂商
      │                          │                      │
      │  POST /v1/chat/          │                      │
      │  completions             │                      │
@@ -211,7 +215,7 @@ go test ./internal/config/ -v    # 5 个测试
 
 ## 开源协议
 
-MIT
+[Apache-2.0](https://www.apache.org/licenses/LICENSE-2.0)
 
 ---
 

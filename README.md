@@ -5,6 +5,10 @@
   <i>Universal proxy for AI chat APIs — OpenAI format in, any provider out.</i>
 </p>
 
+<p align="center">
+  <sub><a href="./README_zh.md">中文</a></sub>
+</p>
+
 ---
 
 AI Switch is a lightweight Go proxy that accepts **OpenAI-compatible** chat completion requests
@@ -160,15 +164,15 @@ Client (OpenAI SDK)           AI Switch              Upstream
        │                         │                      │
        │  POST /v1/chat/         │                      │
        │  completions            │                      │
-       │ ──────────────────────▶ │                      │
+       │ ──────────────────────▶│                      │
        │                         │ ① parse & validate   │
-       │                         │ ② translate if needed │
+       │                         │ ② translate if needed│
        │                         │ ③ add auth headers   │
-       │                         │ ────────────────────▶ │
-       │                         │                      │ ④ upstream model
-       │                         │ ◀──────────────────── │
-       │                         │ ⑤ translate response  │
-       │ ◀────────────────────── │ ⑥ log & track cost   │
+       │                         │ ────────────────────▶│
+       │                         │                       │ ④ upstream model
+       │                         │ ◀────────────────────│
+       │                         │ ⑤ translate response │
+       │ ◀──────────────────────│ ⑥ log & track cost   │
        │                         │                      │
 ```
 
@@ -204,7 +208,7 @@ go test ./internal/config/ -v    # 5 tests
 
 ## License
 
-MIT
+[Apache-2.0](https://www.apache.org/licenses/LICENSE-2.0)
 
 ---
 
