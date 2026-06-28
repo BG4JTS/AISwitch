@@ -1,3 +1,10 @@
+// Package keymanager 提供线程安全的 API Key 内存管理。
+//
+// Manager 支持两级 Key 解析（优先级从高到低）：
+//   1. 通过 SetKey() 存入内存的 Key
+//   2. 环境变量 AIS_{PROVIDER}_KEY（大小写不敏感）
+//
+// Manager 的所有公开方法均线程安全。
 package keymanager
 
 import (

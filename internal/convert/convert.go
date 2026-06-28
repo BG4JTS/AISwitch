@@ -1,3 +1,28 @@
+// Package convert 提供 OpenAI 和 Anthropic 之间的请求/响应格式互转。
+//
+// # 请求转换
+//
+// ConvertOpenAIReqToClaude 将 OpenAI Chat Completion 请求体
+// 转换为 Anthropic Messages API 格式。主要差异：
+//   - system 消息提取为顶层 "system" 字段（Claude 不支持 system role）
+//   - 添加必需的 "max_tokens" 字段
+//   - 透传 temperature、top_p、stream 等可选参数
+//
+// # 响应转换
+//
+// ConvertClaudeRespToOpenAI 将 Anthropic 响应转换为 OpenAI 格式。
+// 主要工作包括：
+//   - 拼接 content[] 中所有 text 块
+//   - 转换 usage 字段（input_tokens→prompt_tokens, output_tokens→completion_tokens）
+//   - 映射 stop_reason→finish_reason
+//
+// # 停止原因映射
+//
+// MapStopReason 完成以下转换：
+//
+//	end_turn / stop_sequence → stop
+//	max_tokens                → length
+//	tool_use                  → tool_calls
 package convert
 
 import (

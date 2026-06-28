@@ -1,3 +1,10 @@
+// Package logger 提供 AI Switch 的结构化日志输出。
+//
+// 通过 Logger 结构体将每次请求记录为单行 JSON 到 stdout。
+// 日志包含 token 用量、费用（美元）、耗时、状态码等字段。
+//
+// PrintLog() 是便捷入口，内部委托给全局 defaultLogger。
+// 费用计算委托给 pkg/price 包，本包仅负责日志格式化。
 package logger
 
 import (

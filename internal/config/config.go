@@ -1,3 +1,14 @@
+// Package config 提供用户配置文件（~/.ais/config.json）的持久化读写。
+//
+// File 结构体包装了对 config.json 的全部操作：
+//   - Load / Save: 从磁盘读取和写入
+//   - SetProfile / GetProfile / DeleteProfile: 按名管理 Profile
+//   - Default / SetDefault: 控制默认 profile
+//
+// Profile 存储单个提供商的一组凭据（name/provider/key/model/baseURL）。
+// Key 在展示时自动脱敏（sk-abc123***）。
+//
+// 该包被 cmd/config.go 消费，通过 ais config 子命令暴露给用户。
 package config
 
 import (

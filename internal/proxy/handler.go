@@ -1,3 +1,14 @@
+// Package proxy 实现了 AI Switch 的 HTTP 反向代理核心逻辑。
+//
+// 主要功能：
+//   - 接收客户端 OpenAI 格式的 /v1/chat/completions 请求
+//   - 将请求转发到上游 AI 提供商（OpenAI / Anthropic / DeepSeek）
+//   - 自动完成 OpenAI ↔ Anthropic 的请求/响应格式转换
+//   - 支持 SSE 流式响应的实时转换
+//   - 提取 usage 信息写入结构化 JSON 日志
+//
+// Handler 函数是外部唯一的入口点，返回 http.HandlerFunc。
+// 内部通过 Config 结构体注入所有配置和依赖。
 package proxy
 
 import (
@@ -17,7 +28,16 @@ import (
 
 // ── Config ──────────────────────────────────────────────────────────────
 
-// Config holds proxy configuration.
+// Config 包含代理服务器的所有运行时配置。
+//
+// 字段说明：
+//
+//	Provider  上游提供商名称（openai / anthropic / deepseek）
+//	Key       直接指定的 API Key（如果 KeyMgr 不可用则使用此字段）
+//	Model     默认模型名称（请求体中的 model 字段可覆盖）
+//	BaseURL   自定义上游 URL（留空则使用各提供商的默认地址）
+//	Verbose   是否打印调试信息到 stderr
+//	KeyMgr    可选的 KeyManager 实例（优先级高于 Key 字段）
 type Config struct {
 	Provider string
 	Key      string
@@ -55,7 +75,16 @@ func defaultTargetURL(provider string) (string, bool) {
 
 // ── Handler ─────────────────────────────────────────────────────────────
 
-// Handler returns an http.HandlerFunc that proxies chat completion requests.
+// Handler 返回处理 /v1/chat/completions 请求的 http.HandlerFunc。
+//
+// 它是代理服务器的唯一外部入口点。内部流程：
+//  1. 解析请求体，提取 model、stream 等字段
+//  2. 根据 Provider 构建上游请求体（Anthropic 需要 OpenAI→Claude 转换）
+//  3. 添加认证头（Bearer 或 x-api-key）
+//  4. 发送到上游提供商
+//  5a. 非流式：读取完整响应 → 转换 → 写日志 → 返回客户端
+//  5b. 流式：逐行扫描 SSE → 实时转换 → flush → 最后写日志
+//  6. 错误情况下原样透传上游错误响应（保留状态码和 body）
 func Handler(config Config) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		startTime := time.Now()

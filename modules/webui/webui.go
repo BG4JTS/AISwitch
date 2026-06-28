@@ -1,6 +1,12 @@
 //go:build webui
 // +build webui
 
+// Package webui 提供可选的 Web 仪表板模块（编译标签：webui）。
+//
+// 使用 //go:embed 将静态文件编译进二进制。
+// 路由：GET /dashboard/* → 嵌入式静态文件服务。
+//
+// 编译标签：//go:build webui
 package webui
 
 import (

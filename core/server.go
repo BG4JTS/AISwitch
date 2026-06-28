@@ -1,3 +1,15 @@
+// Package core 提供 AI Switch 的模块化服务器框架。
+//
+// Server 整合了 HTTP 路由、模块生命周期管理、优雅关闭和依赖注入。
+// 所有可插拔模块（webui / cost / keymgr）通过 RegisterModule() 注册。
+//
+// 典型用法：
+//
+//	srv := core.NewServer(proxy.Config{...})
+//	for _, m := range core.GetModules() {
+//	    srv.RegisterModule(m)
+//	}
+//	srv.Run()
 package core
 
 import (
@@ -17,7 +29,20 @@ import (
 	"github.com/yourusername/ais/pkg/types"
 )
 
-// Server is the modular AI Switch server.
+// Server 是 AI Switch 的模块化 HTTP 服务器。
+//
+// 它负责：
+//   - 解析和验证代理配置
+//   - 构建 HTTP 路由（/v1/chat/completions、/health）
+//   - 管理模块生命周期（注册 → Init → Start → Stop）
+//   - 通过 KeyMgr 解析 API Key
+//   - 优雅关闭（SIGINT）
+//
+// 依赖注入点（公开字段，测试时可替换）：
+//
+//	Logger   日志输出
+//	KeyMgr   API Key 管理器
+//	PriceTbl 价格计算器
 type Server struct {
 	mu      sync.Mutex
 	cfg     *types.Config

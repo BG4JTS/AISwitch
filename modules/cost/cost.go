@@ -1,6 +1,15 @@
 //go:build cost
 // +build cost
 
+// Package cost 提供可选的费用控制模块（编译标签：cost）。
+//
+// 基于 pkg/price 的价格表追踪每日/每月 API 花费。
+// 超预算时可选拒绝新请求（HTTP 429）。
+//
+// 特性：每日/每月双轨预算、文件持久化（~/.ais/budget.json）、
+// 80% 告警阈值、block_on_exceed 熔断、日期变更自动重置。
+//
+// 编译标签：//go:build cost
 package cost
 
 import (

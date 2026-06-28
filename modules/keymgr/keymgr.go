@@ -1,6 +1,12 @@
 //go:build keymgr
 // +build keymgr
 
+// Package keymgr 提供可选的高级 Key 管理模块（编译标签：keymgr）。
+//
+// 额外提供加密文件持久化（~/.ais/keys.enc）、Key 脱敏展示、
+// CLI 便捷函数（CliAdd/CliList/CliDelete）。
+//
+// 编译标签：//go:build keymgr
 package keymgr
 
 import (

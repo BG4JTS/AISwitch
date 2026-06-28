@@ -1,3 +1,24 @@
+// Package price 提供灵活的大模型价格配置和费用计算能力。
+//
+// # 核心概念
+//
+// 价格以"每 1000 token 的美元价格"存储，分为输入（prompt）和输出（completion）两种。
+//
+// # 价格来源（优先级从高到低）
+//
+//  1. 命令行参数 --price model=prompt,completion
+//  2. 环境变量 AIS_PRICE_<MODEL>
+//  3. 配置文件 ~/.ais/config.yaml 的 prices 字段
+//  4. 内置默认价格表
+//
+// # 线程安全
+//
+// Table 的所有公开方法均使用 sync.RWMutex 保护，可并发读写。
+//
+// # 全局单例
+//
+// Global() 返回全局价格表（lazy init + 自动加载环境变量），
+// 可通过 OverrideGlobal() 替换。
 package price
 
 import (
@@ -9,19 +30,21 @@ import (
 	"sync"
 )
 
-// Entry holds per-model pricing (per 1k tokens).
+// Entry 表示单个模型的每千 token 价格（单位：美元）。
 type Entry struct {
-	PromptPrice     float64
-	CompletionPrice float64
+	PromptPrice     float64 // 输入（prompt）token 的每千 token 价格
+	CompletionPrice float64 // 输出（completion）token 的每千 token 价格
 }
 
-// Table stores all model prices.
+// Table 存储并管理所有模型的定价信息。
+//
+// 所有方法均线程安全。价格来源于默认表、环境变量和配置文件。
 type Table struct {
 	mu      sync.RWMutex
 	entries map[string]Entry
 }
 
-// NewTable creates a Table with default prices loaded.
+// NewTable 创建并返回一个加载了默认价格的 Table。默认价格来自 LoadDefaults()。
 func NewTable() *Table {
 	t := &Table{entries: make(map[string]Entry)}
 	t.LoadDefaults()
