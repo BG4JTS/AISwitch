@@ -3,6 +3,7 @@ package convert
 import (
 	"encoding/json"
 	"fmt"
+	"time"
 )
 
 // ConvertOpenAIReqToClaude converts OpenAI chat completion request format to Claude messages format
@@ -13,11 +14,14 @@ func ConvertOpenAIReqToClaude(openaiReq map[string]interface{}) ([]byte, error) 
 		return nil, fmt.Errorf("model is required")
 	}
 
-	// Extract max_tokens
-	maxTokens := 4096 // default
-	if mt, ok := openaiReq["max_tokens"].(float64); ok {
-		maxTokens = int(mt)
-	}
+// Extract max_tokens (Claude requires this field)
+maxTokens := 4096 // default
+switch mt := openaiReq["max_tokens"].(type) {
+case float64:
+	maxTokens = int(mt)
+case int:
+	maxTokens = mt
+}
 
 	// Extract messages
 	messages, ok := openaiReq["messages"].([]interface{})
@@ -25,17 +29,26 @@ func ConvertOpenAIReqToClaude(openaiReq map[string]interface{}) ([]byte, error) 
 		return nil, fmt.Errorf("messages is required")
 	}
 
-	// Convert messages
+	// Convert messages, also extracting system prompt if present
 	convertedMessages := make([]map[string]interface{}, 0, len(messages))
+	var systemPrompt string
 	for _, msg := range messages {
 		msgMap, ok := msg.(map[string]interface{})
 		if !ok {
 			return nil, fmt.Errorf("invalid message format")
 		}
 
-		convertedMsg := map[string]interface{}{}
-		if role, ok := msgMap["role"].(string); ok {
-			convertedMsg["role"] = role
+		role, _ := msgMap["role"].(string)
+		if role == "system" {
+			// Claude uses a top-level "system" field instead of a system message
+			if s, ok := msgMap["content"].(string); ok {
+				systemPrompt = s
+			}
+			continue
+		}
+
+		convertedMsg := map[string]interface{}{
+			"role": role,
 		}
 		if content, ok := msgMap["content"].(string); ok {
 			convertedMsg["content"] = content
@@ -51,12 +64,31 @@ func ConvertOpenAIReqToClaude(openaiReq map[string]interface{}) ([]byte, error) 
 		"messages":   convertedMessages,
 	}
 
-	// Copy optional fields
-	if temp, ok := openaiReq["temperature"].(float64); ok {
-		claudeReq["temperature"] = temp
+	// Add system prompt if extracted
+	if systemPrompt != "" {
+		claudeReq["system"] = systemPrompt
 	}
-	if topP, ok := openaiReq["top_p"].(float64); ok {
-		claudeReq["top_p"] = topP
+
+	// Copy optional fields
+	if temp, ok := openaiReq["temperature"]; ok {
+		switch v := temp.(type) {
+		case float64:
+			claudeReq["temperature"] = v
+		case int:
+			claudeReq["temperature"] = float64(v)
+		}
+	}
+	if topP, ok := openaiReq["top_p"]; ok {
+		switch v := topP.(type) {
+		case float64:
+			claudeReq["top_p"] = v
+		case int:
+			claudeReq["top_p"] = float64(v)
+		}
+	}
+	// Pass stream flag through
+	if stream, ok := openaiReq["stream"].(bool); ok && stream {
+		claudeReq["stream"] = true
 	}
 
 	return json.Marshal(claudeReq)
@@ -74,12 +106,17 @@ func ConvertClaudeRespToOpenAI(claudeResp []byte) ([]byte, error) {
 	id, _ := claudeRespMap["id"].(string)
 	model, _ := claudeRespMap["model"].(string)
 
-	// Extract content
+	// Extract content (Claude returns content as an array of blocks)
 	content := ""
-	if contentArray, ok := claudeRespMap["content"].([]interface{}); ok && len(contentArray) > 0 {
-		if firstContent, ok := contentArray[0].(map[string]interface{}); ok {
-			if text, ok := firstContent["text"].(string); ok {
-				content = text
+	if contentArray, ok := claudeRespMap["content"].([]interface{}); ok {
+		// Concatenate all text blocks (there may be multiple)
+		for _, block := range contentArray {
+			if blockMap, ok := block.(map[string]interface{}); ok {
+				if blockType, _ := blockMap["type"].(string); blockType == "text" {
+					if text, ok := blockMap["text"].(string); ok {
+						content += text
+					}
+				}
 			}
 		}
 	}
@@ -97,20 +134,22 @@ func ConvertClaudeRespToOpenAI(claudeResp []byte) ([]byte, error) {
 		if outputTokens, ok := usageMap["output_tokens"].(float64); ok {
 			usage["completion_tokens"] = int(outputTokens)
 		}
-		usage["total_tokens"] = usage["prompt_tokens"].(int) + usage["completion_tokens"].(int)
+		pt := usage["prompt_tokens"].(int)
+		ct := usage["completion_tokens"].(int)
+		usage["total_tokens"] = pt + ct
 	}
 
 	// Map finish reason
 	finishReason := "stop"
 	if stopReason, ok := claudeRespMap["stop_reason"].(string); ok {
-		finishReason = mapStopReason(stopReason)
+		finishReason = MapStopReason(stopReason)
 	}
 
-	// Build OpenAI response
+	// Build OpenAI response with real timestamp
 	openaiResp := map[string]interface{}{
 		"id":      id,
 		"object":  "chat.completion",
-		"created": 0, // Will be set to current time in proxy
+		"created": time.Now().Unix(),
 		"model":   model,
 		"choices": []map[string]interface{}{
 			{
@@ -128,13 +167,13 @@ func ConvertClaudeRespToOpenAI(claudeResp []byte) ([]byte, error) {
 	return json.Marshal(openaiResp)
 }
 
-// mapStopReason converts Claude stop_reason to OpenAI finish_reason
-func mapStopReason(claudeReason string) string {
+// MapStopReason converts Claude stop_reason to OpenAI finish_reason
+func MapStopReason(claudeReason string) string {
 	mapping := map[string]string{
-		"end_turn":           "stop",
-		"max_tokens":         "length",
-		"stop_sequence":      "stop",
-		"tool_use":           "tool_calls",
+		"end_turn":      "stop",
+		"max_tokens":    "length",
+		"stop_sequence": "stop",
+		"tool_use":      "tool_calls",
 	}
 	if mapped, ok := mapping[claudeReason]; ok {
 		return mapped
