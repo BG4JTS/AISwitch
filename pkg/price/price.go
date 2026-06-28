@@ -83,14 +83,20 @@ func (t *Table) LoadDefaults() {
 	}
 }
 
-// Set adds or overwrites a model's price.
+// Set adds or overwrites a model's pricing.
+// promptPrice and completionPrice are per-1K-token USD costs.
 func (t *Table) Set(model string, promptPrice, completionPrice float64) {
 	t.mu.Lock()
 	defer t.mu.Unlock()
 	t.entries[model] = Entry{promptPrice, completionPrice}
 }
 
-// Get returns the price entry for a model, or the fallback (0.001, 0.002).
+// Get returns the pricing entry for a model name.
+//
+// Matching strategy:
+//  1. Exact match on the full model name
+//  2. Longest-prefix match (case-insensitive) — so "gpt-4o-2024-08-06" hits "gpt-4o"
+//  3. Fallback default entry ($0.001 / $0.002 per 1K)
 func (t *Table) Get(model string) Entry {
 	t.mu.RLock()
 	defer t.mu.RUnlock()
@@ -111,7 +117,9 @@ func (t *Table) Get(model string) Entry {
 	return Entry{0.001, 0.002}
 }
 
-// Calculate computes USD cost and rounds to 8 decimal places.
+// Calculate computes the USD cost for a request, rounded to 8 decimal places.
+//
+//	cost = (promptTokens / 1000 × promptPrice) + (completionTokens / 1000 × completionPrice)
 func (t *Table) Calculate(model string, promptTokens, completionTokens int) float64 {
 	e := t.Get(model)
 	cost := float64(promptTokens)/1000*e.PromptPrice + float64(completionTokens)/1000*e.CompletionPrice

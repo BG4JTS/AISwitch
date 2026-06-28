@@ -20,7 +20,7 @@ import (
 // LogEntry is an alias for the shared type defined in pkg/types.
 type LogEntry = types.LogEntry
 
-// Logger writes structured JSON log entries.
+// Logger writes structured JSON log entries to an io.Writer (default: os.Stdout).
 type Logger struct {
 	encoder *json.Encoder
 }

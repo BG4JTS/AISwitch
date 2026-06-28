@@ -180,7 +180,17 @@ func (s *Server) listenAddr() string {
 	return fmt.Sprintf("%s:%d", host, port)
 }
 
-// Start begins listening and blocks until the context is cancelled.
+// Start begins listening on the configured address/port and blocks until
+// the context is cancelled. It performs the full startup sequence:
+//
+//  1. Resolve API key via KeyMgr (in-memory → environment variable)
+//  2. Validate required fields (key, model)
+//  3. Build HTTP routes (/v1/chat/completions, /health)
+//  4. Start all enabled modules
+//  5. Listen and serve until ctx is cancelled
+//
+// On context cancellation (e.g. SIGINT via Run()), the server shuts down
+// gracefully, allowing in-flight requests to complete.
 func (s *Server) Start(ctx context.Context) error {
 	s.resolveKey()
 	if err := s.validate(); err != nil {
@@ -206,7 +216,9 @@ func (s *Server) Start(ctx context.Context) error {
 	return s.httpSrv.ListenAndServe()
 }
 
-// Stop shuts down the server and all modules.
+// Stop shuts down the HTTP server and calls Stop() on every registered module.
+// It first notifies all modules to stop, and will wait for them to complete
+// before returning.  Module stop errors are logged but do not abort the shutdown.
 func (s *Server) Stop() error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -221,7 +233,11 @@ func (s *Server) Stop() error {
 	return nil
 }
 
-// Run is a convenience method that starts the server and waits for SIGINT.
+// Run starts the server and blocks until SIGINT (Ctrl+C) is received.
+// It creates a cancelable context from signal.NotifyContext, passes it
+// to Start(), and returns when the server has shut down.
+//
+// This is the simplest way to start the server in a main function.
 func (s *Server) Run() error {
 	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt)
 	defer cancel()
