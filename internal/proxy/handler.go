@@ -32,12 +32,13 @@ import (
 //
 // 字段说明：
 //
-//	Provider  上游提供商名称（openai / anthropic / deepseek）
-//	Key       直接指定的 API Key（如果 KeyMgr 不可用则使用此字段）
-//	Model     默认模型名称（请求体中的 model 字段可覆盖）
-//	BaseURL   自定义上游 URL（留空则使用各提供商的默认地址）
-//	Verbose   是否打印调试信息到 stderr
-//	KeyMgr    可选的 KeyManager 实例（优先级高于 Key 字段）
+//	Provider    上游提供商名称（openai / anthropic / deepseek）
+//	Key         直接指定的 API Key（如果 KeyMgr 不可用则使用此字段）
+//	Model       默认模型名称（请求体中的 model 字段可覆盖）
+//	BaseURL     自定义上游 URL（留空则使用各提供商的默认地址）
+//	Verbose     是否打印调试信息到 stderr
+//	KeyMgr      可选的 KeyManager 实例（优先级高于 Key 字段）
+//	AfterRequest 可选回调，在每个请求完成后调用（用于 TUI / 监控集成）
 type Config struct {
 	Provider string
 	Key      string
@@ -45,6 +46,7 @@ type Config struct {
 	BaseURL  string
 	Verbose  bool
 	KeyMgr   *keymanager.Manager
+	AfterRequest func(model string, status int, promptTokens, completionTokens int, costUSD float64, durationMS int64)
 }
 
 // resolveKey returns the API key. Priority: KeyMgr > config.Key.
@@ -253,6 +255,11 @@ func handleNonStreaming(w http.ResponseWriter, resp *http.Response, config Confi
 		RequestID:        requestID,
 	})
 
+	// Notify external observers (e.g. TUI dashboard)
+	if config.AfterRequest != nil {
+		config.AfterRequest(model, resp.StatusCode, p, c, 0, dur)
+	}
+
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(resp.StatusCode)
 	w.Write(responseBody)
@@ -377,8 +384,11 @@ func handleStreamingResponse(w http.ResponseWriter, resp *http.Response, config 
 		Stream:           true,
 		Status:           resp.StatusCode,
 		RequestID:        requestID,
-	})
-}
+		})
+		if config.AfterRequest != nil {
+			config.AfterRequest(model, resp.StatusCode, p, c, 0, dur)
+		}
+	}
 
 func streamOutput(config Config, chunk map[string]interface{}, cached *map[string]interface{}) string {
 	if config.Provider != "anthropic" {

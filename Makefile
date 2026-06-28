@@ -20,10 +20,13 @@ build-cost:
 build-keymgr:
 	go build -ldflags="-s -w" -tags keymgr -o bin/ais-keymgr .
 
-build-full:
-	go build -ldflags="-s -w" -tags "cost,keymgr,webui" -o bin/ais-full .
+build-tui:
+	go build -ldflags="-s -w" -tags tui -o bin/ais-tui .
 
-build-all: build build-webui build-cost build-keymgr build-full
+build-full:
+	go build -ldflags="-s -w" -tags "cost,keymgr,webui,tui" -o bin/ais-full .
+
+build-all: build build-webui build-cost build-keymgr build-tui build-full
 
 # ── Test & Quality ────────────────────────────────────────────
 

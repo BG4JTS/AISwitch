@@ -202,7 +202,8 @@ ais/
 | `ais-webui` | `webui` | Core + WebUI | Visual dashboard |
 | `ais-cost` | `cost` | Core + Cost | Budget management |
 | `ais-keymgr` | `keymgr` | Core + KeyMgr | Encrypted key storage |
-| `ais-full` | `cost,keymgr,webui` | All modules | Full experience |
+| `ais-tui` | `tui` | Core + TUI | Terminal dashboard |
+| `ais-full` | `cost,keymgr,webui,tui` | All modules | Full experience |
 
 ```bash
 make build-all           # all variants

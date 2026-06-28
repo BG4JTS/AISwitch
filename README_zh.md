@@ -200,7 +200,8 @@ ais/
 | `ais-webui` | `webui` | 核心 + WebUI | 可视化仪表板 |
 | `ais-cost` | `cost` | 核心 + 费用控制 | 预算管理 |
 | `ais-keymgr` | `keymgr` | 核心 + Key 管理 | 加密存储 Key |
-| `ais-full` | `cost,keymgr,webui` | 全功能 | 完整体验 |
+| `ais-tui` | `tui` | 核心 + TUI | 终端实时仪表板 |
+| `ais-full` | `cost,keymgr,webui,tui` | 全功能 | 完整体验 |
 
 ```bash
 make build-all           # 所有版本
