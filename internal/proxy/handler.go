@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/yourusername/ais/internal/convert"
+	"github.com/yourusername/ais/internal/keymanager"
 	"github.com/yourusername/ais/internal/logger"
 )
 
@@ -21,6 +22,21 @@ type Config struct {
 	Model    string
 	BaseURL  string
 	Verbose  bool
+	KeyMgr   *keymanager.Manager
+}
+
+// resolveKey returns the API key for the current provider.
+// Priority: KeyMgr (in-memory > env) > config.Key field.
+func (c Config) resolveKey() (string, error) {
+	if c.KeyMgr != nil {
+		if key, err := c.KeyMgr.GetKey(c.Provider); err == nil {
+			return key, nil
+		}
+	}
+	if c.Key != "" {
+		return c.Key, nil
+	}
+	return "", fmt.Errorf("no API key provided for %s", c.Provider)
 }
 
 // defaultTargetURL returns the upstream URL for a given provider.
@@ -132,14 +148,21 @@ func Handler(config Config) http.HandlerFunc {
 			}
 		}
 
+		// Resolve and validate the API key
+		apiKey, err := config.resolveKey()
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusUnauthorized)
+			return
+		}
+
 		// Set provider-specific auth headers
 		switch config.Provider {
 		case "anthropic":
-			req.Header.Set("x-api-key", config.Key)
+			req.Header.Set("x-api-key", apiKey)
 			req.Header.Set("anthropic-version", "2023-06-01")
 		default:
 			// openai, deepseek, and any OpenAI-compatible provider use Bearer auth
-			req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", config.Key))
+			req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", apiKey))
 		}
 
 		// Use a client WITHOUT a timeout for streaming (so long streams aren't killed),
